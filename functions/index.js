@@ -14,6 +14,7 @@ exports.callDavinci = functions.https.onRequest(async (req, res) => {
       prompt: "Hello world",
     });
     console.log("text", completion.data.choices[0].text);
+    res.json(completion.data);
   } catch (error) {
     if (error.response) {
       console.log(error.response.status);
