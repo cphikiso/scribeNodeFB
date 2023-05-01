@@ -1,9 +1,26 @@
 const functions = require("firebase-functions");
+const {Configuration, OpenAIApi} = require("openai");
 
-// // Create and deploy your first functions
-// // https://firebase.google.com/docs/functions/get-started
-//
-// exports.helloWorld = functions.https.onRequest((request, response) => {
-//   functions.logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+const configuration = new Configuration({
+  apiKey: "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",
+});
+
+const openai = new OpenAIApi(configuration);
+
+exports.callDavinci = functions.https.onRequest(async (req, res) => {
+  try {
+    const completion = await openai.createCompletion({
+      model: "text-davinci-003",
+      prompt: "Hello world",
+    });
+    console.log("text", completion.data.choices[0].text);
+  } catch (error) {
+    if (error.response) {
+      console.log(error.response.status);
+      console.log(error.response.data);
+    } else {
+      console.log(error.message);
+    }
+  }
+});
+
