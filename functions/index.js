@@ -8,15 +8,15 @@ const configuration = new Configuration({
 
 const openai = new OpenAIApi(configuration);
 
-exports.callDavinci = functions.https.onRequest(async (req, res) => {
+exports.callWhisper = functions.https.onRequest(async (req, res) => {
   try {
-    const prompt = req.body.prompt;
-    const completion = await openai.createCompletion({
-      model: "text-davinci-003",
-      prompt: prompt,
+    const audioFile = req.body.prompt;
+    const resp = await openai.createTranscription({
+      file: audioFile,
+      model: "whisper-1",
     });
-    console.log("text", completion.data.choices[0].text);
-    res.json(completion.data);
+    console.log("audio to text", resp.data);
+    res.json(resp.data);
   } catch (error) {
     if (error.response) {
       console.log(error.response.status);
@@ -44,7 +44,5 @@ exports.callDavinci = functions.https.onRequest(async (req, res) => {
     }
   }
 });
-
-
 
 
