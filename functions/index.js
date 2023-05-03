@@ -120,14 +120,28 @@ exports.getAllPostsSortedByTime = functions.https
     .onCall(async (data, context) => {
       const postsCollection = db.collectionGroup("userPosts");
       const allUserPosts = [];
+      const afterTimestamp = data.afterTimestamp || null;
+
+      // eslint-disable-next-line require-jsdoc
+      async function getUserData(uid) {
+        const userDoc = await db.collection("users").doc(uid).get();
+        return userDoc.data();
+      }
 
       try {
-        const q = postsCollection.orderBy("time", "desc");
+        let q = postsCollection.orderBy("time", "desc");
+        if (afterTimestamp) {
+          const afterDate = new admin.firestore
+              .Timestamp(afterTimestamp.seconds, afterTimestamp.nanoseconds);
+          q = q.where("time", ">", afterDate);
+        }
         const userPostsSnapshot = await q.get();
 
-        userPostsSnapshot.forEach((postDoc) => {
-          allUserPosts.push({id: postDoc.id, data: postDoc.data()});
-        });
+        for (const postDoc of userPostsSnapshot.docs) {
+          const postData = postDoc.data();
+          const postCreator = await getUserData(postData.uid);
+          allUserPosts.push({id: postDoc.id, data: postData, postCreator});
+        }
 
         return {success: true, data: allUserPosts};
       } catch (error) {
@@ -135,4 +149,5 @@ exports.getAllPostsSortedByTime = functions.https
         return {success: false, error: error.message};
       }
     });
+
 
