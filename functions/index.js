@@ -11,6 +11,7 @@ const {Storage} = require("@google-cloud/storage");
 
 admin.initializeApp();
 const storage = new Storage();
+const db = admin.firestore();
 const bucketName = "scribe-speak-your-mind.appspot.com";
 
 exports.convertAudioToMp3 = functions.https.onCall(async (data, context) => {
@@ -113,3 +114,25 @@ exports.callWhisper = functions.https.onRequest(async (req, res) => {
     }
   }
 });
+
+
+exports.getAllPostsSortedByTime = functions.https
+    .onCall(async (data, context) => {
+      const postsCollection = db.collectionGroup("userPosts");
+      const allUserPosts = [];
+
+      try {
+        const q = postsCollection.orderBy("time", "desc");
+        const userPostsSnapshot = await q.get();
+
+        userPostsSnapshot.forEach((postDoc) => {
+          allUserPosts.push({id: postDoc.id, data: postDoc.data()});
+        });
+
+        return {success: true, data: allUserPosts};
+      } catch (error) {
+        console.error("Error getting posts: ", error);
+        return {success: false, error: error.message};
+      }
+    });
+
