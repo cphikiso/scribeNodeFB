@@ -150,4 +150,23 @@ exports.getAllPostsSortedByTime = functions.https
       }
     });
 
+exports.getCurrentUserPosts = functions.https.onCall(async (data, context) => {
+  const uid = data.uid;
 
+  try {
+    const userPostsQuery = db
+        .collectionGroup("userPosts")
+        .where("uid", "==", uid).orderBy("time", "desc");
+    const snapshot = await userPostsQuery.get();
+
+    const userPosts = snapshot.docs.map((doc) => {
+      return {id: doc.id, data: doc.data()};
+    });
+
+    return {userPosts};
+  } catch (error) {
+    console.error("Error fetching current user posts:", error);
+    throw new functions.https
+        .HttpsError("internal", "Error fetching current user posts");
+  }
+});
