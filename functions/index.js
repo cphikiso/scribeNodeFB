@@ -11,6 +11,7 @@ const {Storage} = require("@google-cloud/storage");
 
 admin.initializeApp();
 const storage = new Storage();
+const db = admin.firestore();
 const bucketName = "scribe-speak-your-mind.appspot.com";
 
 exports.convertAudioToMp3 = functions.https.onCall(async (data, context) => {
@@ -113,3 +114,40 @@ exports.callWhisper = functions.https.onRequest(async (req, res) => {
     }
   }
 });
+
+
+exports.getAllPostsSortedByTime = functions.https
+    .onCall(async (data, context) => {
+      const postsCollection = db.collectionGroup("userPosts");
+      const allUserPosts = [];
+      const afterTimestamp = data.afterTimestamp || null;
+
+      // eslint-disable-next-line require-jsdoc
+      async function getUserData(uid) {
+        const userDoc = await db.collection("users").doc(uid).get();
+        return userDoc.data();
+      }
+
+      try {
+        let q = postsCollection.orderBy("time", "desc");
+        if (afterTimestamp) {
+          const afterDate = new admin.firestore
+              .Timestamp(afterTimestamp.seconds, afterTimestamp.nanoseconds);
+          q = q.where("time", ">", afterDate);
+        }
+        const userPostsSnapshot = await q.get();
+
+        for (const postDoc of userPostsSnapshot.docs) {
+          const postData = postDoc.data();
+          const postCreator = await getUserData(postData.uid);
+          allUserPosts.push({id: postDoc.id, data: postData, postCreator});
+        }
+
+        return {success: true, data: allUserPosts};
+      } catch (error) {
+        console.error("Error getting posts: ", error);
+        return {success: false, error: error.message};
+      }
+    });
+
+
