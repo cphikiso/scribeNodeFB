@@ -22,7 +22,7 @@ exports.convertAudioToMp3 = functions.https.onCall(async (data, context) => {
   const tempLocalSourceFile = path.join(os.tmpdir(), sourceFile);
   const tempLocalTargetFile = path.join(os.tmpdir(), targetFile);
 
-  // Create the temporary directory if it doesn't exist
+  // Create the temporary directory if it doesn"t exist
   fs.mkdirSync(path.dirname(tempLocalSourceFile), {recursive: true});
 
   // Download source file from Google Cloud Storage
@@ -150,4 +150,109 @@ exports.getAllPostsSortedByTime = functions.https
       }
     });
 
+exports.getCurrentUserPosts = functions.https.onCall(async (data, context) => {
+  const uid = data.uid;
 
+  try {
+    const userPostsQuery = db
+        .collectionGroup("userPosts")
+        .where("uid", "==", uid).orderBy("time", "desc");
+    const snapshot = await userPostsQuery.get();
+
+    const userPosts = snapshot.docs.map((doc) => {
+      return {id: doc.id, data: doc.data()};
+    });
+
+    return {userPosts};
+  } catch (error) {
+    console.error("Error fetching current user posts:", error);
+    throw new functions.https
+        .HttpsError("internal", "Error fetching current user posts");
+  }
+});
+
+// Increment commentsCount on comment creation
+exports.incrementCommentsCountOnCreate = functions.firestore
+    .document("posts/{postOwnerId}/userPosts/{postId}/comments/{commentId}")
+    .onCreate(async (snapshot, context) => {
+      const postOwnerId = context.params.postOwnerId;
+      const postId = context.params.postId;
+
+      // Reference to the post document
+      const postRef = admin
+          .firestore()
+          .collection("posts")
+          .doc(postOwnerId)
+          .collection("userPosts")
+          .doc(postId);
+
+      // Increment the commentsCount by 1
+      await postRef.update({
+        commentCount: admin.firestore.FieldValue.increment(1),
+      });
+    });
+
+
+// Decrement commentCount on comment deletion
+exports.decrementCommentsCountOnDelete = functions.firestore
+    .document("posts/{postOwnerId}/userPosts/{postId}/comments/{commentId}")
+    .onDelete(async (snapshot, context) => {
+      const postOwnerId = context.params.postOwnerId;
+      const postId = context.params.postId;
+
+      // Reference to the post document
+      const postRef = admin
+          .firestore()
+          .collection("posts")
+          .doc(postOwnerId)
+          .collection("userPosts")
+          .doc(postId);
+
+      // Decrement the commentCount by 1
+      await postRef.update({
+        commentCount: admin.firestore.FieldValue.increment(-1),
+      });
+    });
+
+// Increment likeCount on comment creation
+exports.incrementLikeCountOnCreate = functions.firestore
+    .document("posts/{postOwnerId}/userPosts/{postId}/likes/{likerId}")
+    .onCreate(async (snapshot, context) => {
+      const postOwnerId = context.params.postOwnerId;
+      const postId = context.params.postId;
+
+      // Reference to the post document
+      const postRef = admin
+          .firestore()
+          .collection("posts")
+          .doc(postOwnerId)
+          .collection("userPosts")
+          .doc(postId);
+
+      // Increment the likeCount by 1
+      await postRef.update({
+        likeCount: admin.firestore.FieldValue.increment(1),
+      });
+    });
+
+
+// Decrement likeCount on comment deletion
+exports.decrementLikeCountOnDelete = functions.firestore
+    .document("posts/{postOwnerId}/userPosts/{postId}/likes/{likerId}")
+    .onDelete(async (snapshot, context) => {
+      const postOwnerId = context.params.postOwnerId;
+      const postId = context.params.postId;
+
+      // Reference to the post document
+      const postRef = admin
+          .firestore()
+          .collection("posts")
+          .doc(postOwnerId)
+          .collection("userPosts")
+          .doc(postId);
+
+      // Decrement the likeCount by 1
+      await postRef.update({
+        likeCount: admin.firestore.FieldValue.increment(-1),
+      });
+    });
