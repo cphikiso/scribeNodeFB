@@ -193,7 +193,7 @@ exports.incrementCommentsCountOnCreate = functions.firestore
     });
 
 
-// Decrement commentsCount on comment deletion
+// Decrement commentCount on comment deletion
 exports.decrementCommentsCountOnDelete = functions.firestore
     .document("posts/{postOwnerId}/userPosts/{postId}/comments/{commentId}")
     .onDelete(async (snapshot, context) => {
@@ -208,8 +208,51 @@ exports.decrementCommentsCountOnDelete = functions.firestore
           .collection("userPosts")
           .doc(postId);
 
-      // Decrement the commentsCount by 1
+      // Decrement the commentCount by 1
       await postRef.update({
         commentCount: admin.firestore.FieldValue.increment(-1),
+      });
+    });
+
+// Increment likeCount on comment creation
+exports.incrementLikeCountOnCreate = functions.firestore
+    .document("posts/{postOwnerId}/userPosts/{postId}/likes/{likerId}")
+    .onCreate(async (snapshot, context) => {
+      const postOwnerId = context.params.postOwnerId;
+      const postId = context.params.postId;
+
+      // Reference to the post document
+      const postRef = admin
+          .firestore()
+          .collection("posts")
+          .doc(postOwnerId)
+          .collection("userPosts")
+          .doc(postId);
+
+      // Increment the likeCount by 1
+      await postRef.update({
+        likeCount: admin.firestore.FieldValue.increment(1),
+      });
+    });
+
+
+// Decrement likeCount on comment deletion
+exports.decrementLikeCountOnDelete = functions.firestore
+    .document("posts/{postOwnerId}/userPosts/{postId}/likes/{likerId}")
+    .onDelete(async (snapshot, context) => {
+      const postOwnerId = context.params.postOwnerId;
+      const postId = context.params.postId;
+
+      // Reference to the post document
+      const postRef = admin
+          .firestore()
+          .collection("posts")
+          .doc(postOwnerId)
+          .collection("userPosts")
+          .doc(postId);
+
+      // Decrement the likeCount by 1
+      await postRef.update({
+        likeCount: admin.firestore.FieldValue.increment(-1),
       });
     });
